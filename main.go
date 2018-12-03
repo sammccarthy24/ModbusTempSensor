@@ -19,7 +19,7 @@ import (
 )
                 
 const (
-	SAMPLING_PERIOD = 60 // //Seconds
+	SAMPLING_PERIOD = 60 // // //Seconds
 	SERIAL_PORT = "/dev/ttyUSB0"
 	FILE_PATH = "/home/pi/Data/Temperature_Data/"
 	EMAIL_ADDRESS_FROM = "sammccarthy24.develop@gmail.com"

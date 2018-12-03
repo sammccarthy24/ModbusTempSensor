@@ -19,7 +19,7 @@ import (
 )
                 
 const (
-	SAMPLING_PERIOD = 60 // //Seconds
+	SAMPLING_PERIOD = 60 // Seconds
 	SERIAL_PORT = "/dev/ttyUSB0"
 	FILE_PATH = "/home/pi/Data/Temperature_Data/"
 	EMAIL_ADDRESS_FROM = "sammccarthy24.develop@gmail.com"
@@ -38,22 +38,57 @@ func main() {
     fmt.Print("Enter password for " + EMAIL_ADDRESS_FROM + ": ")
     EMAIL_PASSWORD_FROM, _ := reader.ReadString('\n')
 
-	// Modbus RTU/ASCII
-	handler := modbus.NewRTUClientHandler(SERIAL_PORT)
-	handler.BaudRate = 9600
-	handler.DataBits = 8
-	handler.Parity = "N"
-	handler.StopBits = 1
-	handler.SlaveId = 1
-	handler.Timeout = 5 * time.Second
+	// Modbus RTU/ASCII: Connect to sensor 1
+	handler1 := modbus.NewRTUClientHandler(SERIAL_PORT)
+	handler1.BaudRate = 9600
+	handler1.DataBits = 8
+	handler1.Parity = "N"
+	handler1.StopBits = 1
+	handler1.SlaveId = 1
+	handler1.Timeout = 5 * time.Second
 
-	err := handler.Connect()
+	err := handler1.Connect()
 	if err != nil {
 			log.Fatal(err)
 	}
-	defer handler.Close()
+	defer handler1.Close()
 
-	client := modbus.NewClient(handler)
+	client1 := modbus.NewClient(handler1)
+	
+	// Modbus RTU/ASCII: Connect to sensor 2
+	handler2 := modbus.NewRTUClientHandler(SERIAL_PORT)
+	handler2.BaudRate = 9600
+	handler2.DataBits = 8
+	handler2.Parity = "N"
+	handler2.StopBits = 1
+	handler2.SlaveId = 2
+	handler2.Timeout = 5 * time.Second
+
+	err = handler2.Connect()
+	if err != nil {
+			log.Fatal(err)
+	}
+	defer handler2.Close()
+
+	client2 := modbus.NewClient(handler2)
+	
+	// Modbus RTU/ASCII: Connect to sensor 3
+	handler3 := modbus.NewRTUClientHandler(SERIAL_PORT)
+	handler3.BaudRate = 9600
+	handler3.DataBits = 8
+	handler3.Parity = "N"
+	handler3.StopBits = 1
+	handler3.SlaveId = 3
+	handler3.Timeout = 5 * time.Second
+
+	err = handler3.Connect()
+	if err != nil {
+			log.Fatal(err)
+	}
+	defer handler3.Close()
+
+	client3 := modbus.NewClient(handler3)
+	
 
 	for ;; {
 
@@ -74,7 +109,7 @@ func main() {
 		defer file.Close()
 
 		// Initialise maximum and minimum temperatures
-		results, err := client.ReadHoldingRegisters(0, 1)
+		results, err := client1.ReadHoldingRegisters(0, 1)
 		if err != nil {
 				log.Fatal(err)
 		}
@@ -86,12 +121,26 @@ func main() {
 			// Set previous date to current date for comparison
 			previous_date = current_date
 
-			results, err = client.ReadHoldingRegisters(0, 1)
+			// Read sensor 1
+			results, err = client1.ReadHoldingRegisters(0, 1)
 			if err != nil {
 					SensorNotFoundError(start_time)
 			}
-
 			temp := float64(int(results[0])*256 + int(results[1]))/10.0
+			
+			// Read sensor 2
+			results, err = client2.ReadHoldingRegisters(0, 1)
+			if err != nil {
+					SensorNotFoundError(start_time)
+			}
+			temp2 := float64(int(results[0])*256 + int(results[1]))/10.0
+			
+			// Read sensor 3
+			results, err = client3.ReadHoldingRegisters(0, 1)
+			if err != nil {
+					SensorNotFoundError(start_time)
+			}
+			temp3 := float64(int(results[0])*256 + int(results[1]))/10.0
 
 			if temp > max_temp {
 					max_temp = temp
@@ -99,9 +148,17 @@ func main() {
 					min_temp = temp
 			}
 
-			fmt.Print("The temperature is ")
+			fmt.Print("The temperature on sensor 1 is ")
 			fmt.Print(temp)
 			fmt.Println(" degrees celsius")
+			
+			fmt.Print("The temperature on sensor 2 is ")
+			fmt.Print(temp2)
+			fmt.Println(" degrees celsius")
+			
+			fmt.Print("The temperature on sensor 3 is ")
+			fmt.Print(temp3)
+			fmt.Println(" degrees celsius\n")
 
 			// Capture a time stamp and then re-format it for the .CSV file
 			stamp := []byte(time.Now().Format(time.RFC3339Nano))
@@ -115,21 +172,12 @@ func main() {
 			
 			// Update current date
 			current_date, _ = strconv.Atoi(string(stamp[8:10]))
+			
+			// Build entry string
+			entry := string(stamp) + strconv.FormatFloat(temp, 'f', 2, 32) + "," + strconv.FormatFloat(temp2, 'f', 2, 32) + "," + strconv.FormatFloat(temp3, 'f', 2, 32) + "\n" 
 
 			// Write the time stamp to the .CSV file
-			_, err = file.Write(stamp)
-			if err != nil {
-					panic(err)
-			}
-
-			// Write the serial data to the .CSV file
-			_, err = file.Write([]byte(strconv.FormatFloat(temp, 'f', 2, 32)))
-			if err != nil {
-					panic(err)
-			}
-
-			// Write the serial data to the .CSV file
-			_, err = file.Write([]byte("\n"))
+			_, err = file.Write([]byte(entry))
 			if err != nil {
 					panic(err)
 			}

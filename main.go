@@ -28,6 +28,7 @@ const (
 
 var (
 	EMAIL_PASSWORD_FROM = ""
+	FILE_NAME = ""
 )
 
 
@@ -102,7 +103,8 @@ func main() {
 		previous_date := current_date
 
 		// Open the file to store the data
-		file, err := os.OpenFile(FILE_PATH + string(start_time[:10]) + ".csv", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+		FILE_NAME = string(start_time[:10]) + ".csv"
+		file, err := os.OpenFile(FILE_PATH + FILE_NAME, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
 		if err != nil {
 				panic(err)
 		}
@@ -167,7 +169,7 @@ func main() {
 							stamp[i] = ','
 					}
 			}
-			stamp = stamp[0:(len(stamp) - 11)]
+			stamp = stamp[0:19]
 			stamp = append(stamp, ',')
 			
 			// Update current date
@@ -196,9 +198,9 @@ func main() {
 	        m := gomail.NewMessage()
 	        m.SetHeader("From", EMAIL_ADDRESS_FROM)
 	        m.SetHeader("To", EMAIL_ADDRESS_TO)
-	        m.SetHeader("Subject", "Temperature sensor log for " + string(start_time[:len(start_time)-8]))
+	        m.SetHeader("Subject", "Temperature sensor log for " + string(start_time[:len(start_time)-9]))
 	        m.SetBody("text/html", email_body)
-	        m.Attach(FILE_PATH + string(start_time[:(len(start_time)-6)]) + ".csv")
+	        m.Attach(FILE_PATH + FILE_NAME)
 	
 	        d := gomail.NewDialer("smtp.gmail.com", 587, EMAIL_ADDRESS_FROM, EMAIL_PASSWORD_FROM)
 	
@@ -220,7 +222,7 @@ func SensorNotFoundError(start_time []byte) {
 	m.SetHeader("To", EMAIL_ADDRESS_TO)
 	m.SetHeader("Subject", "Temperature sensor error")
 	m.SetBody("text/html", email_body)
-	m.Attach(FILE_PATH + string(start_time[:(len(start_time)-6)]) + ".csv")
+	m.Attach(FILE_PATH + FILE_NAME)
 
 	d := gomail.NewDialer("smtp.gmail.com", 587, EMAIL_ADDRESS_FROM, EMAIL_PASSWORD_FROM)
 
